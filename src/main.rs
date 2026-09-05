@@ -1,92 +1,32 @@
-use std::{
-    env,
-    fs,
-    io::{self, Write},
-};
+use colored::Colorize;
+use std::{env, fs};
 
-use crossterm::{
-    cursor,
-    event::{self, Event, KeyCode},
-    execute,
-    terminal::{self, ClearType},
-};
+fn main() {
+    let current_directory = env::current_dir()
+        .expect("Couldnt determine current directory.");
 
-use colored::{
-    Colorize
-};
+    let entries = fs::read_dir(&current_directory)
+        .expect("Couldnt read current directory.");
 
-fn main() -> io::Result<()> {
-    let current_directory = env::current_dir()?;
-    let mut entries = Vec::new();
+    for entry in entries {
+        let entry = entry
+            .expect("Couldnt read entry");
 
-    for entry in fs::read_dir(&current_directory)? {
-        let entry = entry?;
-        let file_type = entry.file_type()?;
+        let file_type = entry
+            .file_type()
+            .expect("Couldnt determine filetype.");
 
-        entries.push((
-            entry.file_name().to_string_lossy().to_string(),
-            file_type.is_dir(),
-        ));
-    }
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
 
-    entries.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let mut selected: usize = 0;
-
-    terminal::enable_raw_mode()?;
-
-    let result = run(&entries, &mut selected);
-
-    terminal::disable_raw_mode()?;
-
-    result
-}
-
-fn run(entries: &[(String, bool)],selected: &mut usize,) -> io::Result<()> {
-    loop {
-        let mut stdout = io::stdout();
-
-        execute!(
-            stdout,
-            terminal::Clear(ClearType::All),
-            cursor::MoveTo(0, 0)
-        )?;
-
-        for (index, (name, is_directory)) in entries.iter().enumerate() {
-            let prefix = if index == *selected { ">  ".green().bold() } else { "  ".normal() };
-            let suffix = if *is_directory { "/" } else { "" };
-
-            let display_name = if *is_directory { 
+        println!("{}", {
+            if file_type.is_dir() {
                 name.blue().bold()
             } else {
                 name.white()
-            };
-
-            write!(stdout, "{prefix}{display_name}{suffix}\r\n");
-        }
-
-        stdout.flush()?;
-
-        if let Event::Key(key_event) = event::read()? {
-            match key_event.code {
-                KeyCode::Up => {
-                    *selected = selected.saturating_sub(1);
-                }
-
-                KeyCode::Down => {
-                    if *selected + 1 < entries.len() {
-                        *selected += 1;
-                    }
-                }
-
-                KeyCode::Char('q') | KeyCode::Esc => {
-                    break;
-                }
-
-                _ => {}
             }
-        }
+        });
     }
 
-    Ok(())
+    println!("{}", current_directory.display());
 }
