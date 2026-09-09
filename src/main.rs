@@ -20,13 +20,13 @@ fn main() {
         let name = name.to_string_lossy();
 
         println!("{}", {
+
             if file_type.is_dir() {
-                name.blue().bold()
+                format!("{name}/").blue().bold()
             } else {
                 name.white()
             }
         });
     }
 
-    println!("{}", current_directory.display());
 }
