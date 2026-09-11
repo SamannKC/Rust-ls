@@ -1,6 +1,16 @@
 use colored::Colorize;
 use std::{env, fs};
 use terminal_size::{terminal_size, Width};
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Args{
+    // shows hidden files
+    #[arg(short)]
+    a: bool, 
+
+}
 
 // struct for items in directory 
 struct Items{
@@ -9,6 +19,7 @@ struct Items{
 }
 
 fn main() {
+
     let current_directory = env::current_dir()
         .expect("Couldnt determine current directory.");
 
@@ -34,12 +45,19 @@ fn main() {
     let column_width = max_width + 3;
     let columns = terminal_width/column_width;
 
+    println!("{}", "_".repeat(terminal_width).cyan());
+    println!();
+
     // display the items
     display(names, &columns, &column_width);
 
+    println!();
+    println!("{}", "_".repeat(terminal_width).cyan());
 }
 
 fn populate(names: &mut Vec<Items>, entries: fs::ReadDir){
+    let args = Args::parse();
+
     for entry in entries {
         let entry = entry
             .expect("Couldnt read entry");
@@ -50,8 +68,10 @@ fn populate(names: &mut Vec<Items>, entries: fs::ReadDir){
 
         let name = entry.file_name();
         let name = name.to_string_lossy().to_string();
-        if name.starts_with("."){
-            continue;
+        if !args.a {
+            if name.starts_with("."){
+                continue;
+            }
         }
 
         names.push(Items{
