@@ -1,1 +1,1 @@
-### fun litte "ls" written in rust 
+### fun little "ls" written in rust 
