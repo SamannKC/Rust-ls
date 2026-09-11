@@ -10,6 +10,8 @@ struct Args{
     #[arg(short)]
     a: bool, 
 
+    #[arg(short)]
+    grep: Option<String>,
 }
 
 // struct for items in directory 
@@ -19,6 +21,7 @@ struct Items{
 }
 
 fn main() {
+    let args = Args::parse();
 
     let current_directory = env::current_dir()
         .expect("Couldnt determine current directory.");
@@ -29,10 +32,16 @@ fn main() {
     let mut names: Vec<Items> = Vec::new();
 
     // Populate the struct
-    populate(&mut names, entries);
+    populate(&mut names, entries, &args);
 
     // divide into columns for better readability
     let max_width = names.iter()
+        .filter(|item|{
+            match &args.grep {
+                Some(grep) => item.name.to_lowercase().contains(&grep.to_lowercase()),
+                None => true,
+            }
+        })
         .map(|item| item.name.len())
         .max()
         .unwrap_or(0);
@@ -43,20 +52,14 @@ fn main() {
     };
 
     let column_width = max_width + 3;
-    let columns = terminal_width/column_width;
-
-    println!("{}", "_".repeat(terminal_width).cyan());
-    println!();
+    let columns = (terminal_width/column_width).max(1);
 
     // display the items
-    display(names, &columns, &column_width);
+    display(&names, columns, column_width, &args);
 
-    println!();
-    println!("{}", "_".repeat(terminal_width).cyan());
 }
 
-fn populate(names: &mut Vec<Items>, entries: fs::ReadDir){
-    let args = Args::parse();
+fn populate(names: &mut Vec<Items>, entries: fs::ReadDir, args: &Args){
 
     for entry in entries {
         let entry = entry
@@ -83,8 +86,15 @@ fn populate(names: &mut Vec<Items>, entries: fs::ReadDir){
 }
 
 
-fn display(names: Vec<Items>, columns: &usize, column_width: &usize){
-    for (i, item) in names.iter().enumerate(){
+fn display(names: &[Items], columns: usize, column_width: usize, args: &Args){
+
+    for (i, item) in names.iter()
+        .filter(|item|{match &args.grep {
+                Some(grep) => item.name.to_lowercase().contains(&grep.to_lowercase()),
+                None => true,
+            }
+        }).enumerate(){
+
         if item.is_dir{
             print!(
                 "{:<width$}",format!("{}/", item.name).blue().bold(),
